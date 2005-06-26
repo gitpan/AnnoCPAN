@@ -1,0 +1,33 @@
+[% PROCESS header.html title=distver.distver %]
+
+[% PROCESS login_form.html %]
+[% PROCESS form.html %]
+
+<h2>
+<a href="[% root_uri_rel %]/author/[% distver.pause_id %]">[% distver.pause_id %]</a>
+&gt;
+<a href="[% root_uri_rel %]/dist/[% distver.dist.name %]">[% distver.dist.name %]</a> 
+[% distver.version %] 
+<span class="mtime">([% USE date; date.format(distver.mtime, "%Y-%m-%d") %])</span>
+</h2>
+
+<p class="sisters">
+[ 
+[% link_distver_search_cpan_org(distver) %] |
+[% link_distver_kobes(distver) %] |
+[% link_distver_cpanforum(distver) %] |
+[% link_distver_cpanratings(distver) %] |
+[% link_distver_rt(distver) %] |
+[% link_distver_cpantesters(distver) %] |
+[% link_distver_download(distver) %]
+]
+</p>
+
+<table>
+[% FOR podver = distver.podvers.sort('name') %]
+    <tr class="[% loop.count % 2 ? 'even' : 'odd' %]"><td>[% link_podver(podver); %]</td>
+    <td>[% podver.description %]</td></tr>
+[% END %]
+</table>
+
+[% PROCESS footer.html %]

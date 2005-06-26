@@ -1,0 +1,18 @@
+<notes>
+[%- FOR note = notes %]
+<note author="[% note.user.username %]"
+      time="[% note.time %]"
+      pod="[% note.pod.name | html %]">
+      <notepos-list>
+[%- FOR notepos = note.notepos %]
+        <notepos pos="[% notepos.section.pos %]"
+                 distver="[% notepos.section.podver.distver.path | html %]"
+                 path="[% notepos.section.podver.path | html %]"
+                 score="[% notepos.score %]"
+                 status="[% notepos.status %]" />
+[%- END %]
+    </notepos-list>
+    <content>[% note.note | html %]</content>
+</note>
+[%- END %]
+</notes>

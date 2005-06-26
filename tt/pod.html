@@ -1,0 +1,49 @@
+[% UNLESS mode == 'Edit' || mode == 'Move' || mode == 'Create'%]
+    [% my_html(podver) %]
+[% ELSE %]
+<div id="pod2html">
+
+[% FOR sect = podver.sections %]
+[% html = sect.html; NEXT UNLESS html.length %]
+
+[% IF sect.type < 4 %]
+    <div class="para">
+    <a name="[% sect.pos %]"></a>
+    [% html %]
+
+    <div class="noteblock">
+    [% FOR notepos = sect.notepos.nsort('time') %]
+        [% note = notepos.note %] 
+        [% IF param('notepos') == notepos.id && mode == 'Edit' %]
+            [% INCLUDE note_form.html notepos=notepos %]
+        [% ELSIF param('notepos') == notepos.id && mode == 'Move' %]
+            Moving note... click on the arrow next to the desired
+            destination.
+        [% ELSIF notepos.is_visible %]
+            [% PROCESS note.html %]
+        [% END %]
+    [% END %]
+
+    [% IF mode == 'Create' %]
+        [% IF section == sect %]
+            [% INCLUDE note_form.html notepos='' %]
+        [% END %]
+    [% ELSIF mode == 'Move' %]
+        [% IF sect.id != param('section') %]
+            <a href="[% root_uri_rel %]/e/?mode=do_move;section=[% sect.id %];notepos=[% param('notepos') %]#noteform"><img src="[% img_root %]/move_to.gif" alt="Move note here" title="Move note here"></a>
+        [% END %]
+    [% ELSE %]
+        <a href="[% root_uri_rel %]/e/?mode=create;section=[% sect.id %]#noteform" class="cb"><img src="[% img_root %]/note.gif" alt="New Note" title="Create note"></a>
+    [% END %]
+    </div> <!-- noteblock -->
+    </div> <!-- para -->
+
+[% ELSE %]
+    [% html %]
+[% END # if type %]
+
+[% END # for %]
+</div> <!-- pod2html -->
+[% END # if mode %]
+
+

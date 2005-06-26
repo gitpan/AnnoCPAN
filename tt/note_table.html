@@ -1,0 +1,15 @@
+<table>
+<tr><th>POD</th><th>User</th><th>Time</th></tr>
+[% FOR note = notes %]
+<tr class="[% loop.count % 2 ? 'even' : 'odd' %]">
+    <td><a href="[% root_uri_rel %]/?mode=show_note;note=[% note.id %]#[% note.section.pos %]">[% 
+    note.pod.name %]</a></td>
+    <td>[% IF note.user.id %]
+        [% link_user(note.user) %]
+    [% ELSE %]
+        [% note.ip %]
+    [% END %]</td>
+    <td>[% USE date; date.format(note.time, format="%Y-%m-%d %H:%M:%S", gmt=1) %]</td>
+</tr>
+[% END %]
+</table>

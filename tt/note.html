@@ -1,0 +1,26 @@
+[%# vars: notepos, note, sect %]
+[% UNLESS notepos && ! notepos.is_visible %]
+<div class="note [% notepos.score_class %]">
+<div class="note_header">
+    [% IF note.user.id %]
+        [% link_user(note.user) %]
+    [% ELSE %]
+        [% note.ip %]
+    [% END %]
+    ([% USE date; date.format(note.time, format="%Y-%m-%d %H:%M:%S", gmt=1) %])
+    <a class="button u_[% note.user.id %]" href="[% root_uri_rel %]/e/?mode=edit;notepos=[% notepos.id %]#noteform">[edit]</a>
+    <a class="button u_[% note.user.id %]" href="[% root_uri_rel %]/e/?mode=move;notepos=[% notepos.id %]#[% notepos.section.pos %]">[move]</a>
+</div> <!-- note_header -->
+<div class="note_body"
+    title="Note info: pos=[% notepos.section.pos %] ([% notepos.score / 10 %]% confidence); status=[% notepos.status %]">
+        [% IF log.size > 0 %]
+        <ul class="message">
+        [% FOR m = log %]
+        <li>[% m %]</li>
+        [% END %]
+        </ul>
+        [% END %]
+    [% note.note | html | html_para %]
+</div>
+</div> <!-- note -->
+[% END %]

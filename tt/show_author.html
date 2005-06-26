@@ -1,0 +1,20 @@
+[% PROCESS header.html title=author %]
+
+[% PROCESS login_form.html %]
+[% PROCESS form.html %]
+
+<h2>Distributions by [% author %]</h2>
+
+<p class="sisters">
+[ [% link_author_search_cpan_org(author) %] ]
+</p>
+
+<table>
+[% FOR dist = dists.sort('name') %]
+    <tr class="[% loop.count % 2 ? 'even' : 'odd' %]">
+        <td>[% link_dist(dist) %]</td>
+    </tr>
+[% END %]
+</table>
+
+[% PROCESS footer.html %]
