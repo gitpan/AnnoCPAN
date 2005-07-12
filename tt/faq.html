@@ -121,7 +121,7 @@ AnnoCPAN software. If you find one of these cases, please report it.</p>
 <p>The code is available on CPAN as the [% PROCESS link_dist_name
 name="AnnoCPAN" %] distribution. It is also available on <a
 href="http://sourceforge.net/cvs/?group_id=122046">anonymous CVS</a>, including
-a <a href="http://cvs.annocpan.org/viewcvs.py/annocpan/">viewcvs web
+a <a href="http://cvs.annocpan.org/viewcvs.py/annocpan/annocpan2">viewcvs web
 interface</a></p>
 
 <a name="server"></a><h3>What are the technical requirements for installation?</h3>
@@ -140,7 +140,10 @@ itself</a>. The entire note database can be downloaded as an
 <a name="rss"></a><h3>Can I get RSS feeds?</h3>
 
 <p>Yes, the sitewide recent notes are available as RSS 1.0:
-<a href="[% root_uri_rel %]/recent.rss">recent.rss</a>.</p>
+<a href="[% root_uri_rel %]/recent.rss">recent.rss</a>. The notes for a 
+given PAUSE ID are available at [% root_uri_abs %]/~<i>pauseid</i>/recent.rss .
+RSS feeds per module and per distribution are also being considered.
+</p>
 
 <a name="others"></a><h3>How does this site compare with CPAN::Forum, CPANRatings, search.cpan.org,
 PerlMonks...?</h3>

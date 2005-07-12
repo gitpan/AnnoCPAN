@@ -1,7 +1,7 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         AnnoCPAN
-version:      0.20
+version:      0.21
 version_from: lib/AnnoCPAN.pm
 installdirs:  site
 requires:
@@ -19,7 +19,7 @@ requires:
     String::Similarity:            1
     Template:                      2
     Test::More:                    0
-    Test::Pod:                     1.2
+    Test::Pod:                     1.31
     XML::RSS:                      0
     XML::SAX:                      0
     XML::Simple:                   0

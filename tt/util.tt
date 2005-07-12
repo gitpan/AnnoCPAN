@@ -1,5 +1,5 @@
 [%- MACRO link_distver(distver) BLOCK -%]
-    <a href="[% root_uri_rel %]/dist/[% distver.distver %]">[% distver.distver %]</a> 
+    <a href="[% root_uri_rel %]/~[% distver.pause_id %]/[% distver.distver %]">[% distver.distver %]</a> 
 [%- END -%]
 
 [%- MACRO link_dist(dist) BLOCK -%]
@@ -16,12 +16,16 @@
     <a href="[% root_uri_rel %]/dist/[% name %]">[% name %]</a>
 [%- END -%]
 
-[%- BLOCK link_author -%]
+[%- MACRO link_author(author) BLOCK -%]
     <a href="[% root_uri_rel %]/~[% author %]">[% author %]</a> 
 [%- END -%]
 
 [%- MACRO link_podver(podver) BLOCK -%]
-    <a href="[% root_uri_rel %]/dist/[% podver.distver.distver %]/[% podver.path %]">[% podver.pod.name %]</a>
+    <a href="[% root_uri_rel %]/~[% podver.distver.pause_id %]/[% podver.distver.distver %]/[% podver.path %]">[% podver.pod.name %]</a>
+[%- END -%]
+
+[%- MACRO podver_uri(podver) BLOCK -%]
+    [% root_uri_rel %]/~[% podver.distver.pause_id %]/[% podver.distver.distver %]/[% podver.path %]
 [%- END -%]
 
 [%- MACRO link_pod(pod) BLOCK -%]
@@ -78,4 +82,8 @@
 
 [%- MACRO link_author_search_cpan_org(author) BLOCK -%]
     <a href="http://search.cpan.org/~[% author %]">search.cpan.org</a>
+[%- END -%]
+
+[%- MACRO link_author_kobes(author) BLOCK -%]
+    <a href="http://cpan.uwinnipeg.ca/~[% author %]">Kobes search</a>
 [%- END -%]

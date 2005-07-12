@@ -1,6 +1,6 @@
 package AnnoCPAN::PodParser;
 
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 use strict;
 use warnings;

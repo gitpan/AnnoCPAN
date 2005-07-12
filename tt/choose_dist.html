@@ -21,9 +21,13 @@
 [% USE date %]
 [% FOR distver = distvers.nsort('mtime').reverse %]
     <tr class="[% loop.count % 2 ? 'even' : 'odd' %]">
-        <td>[% PROCESS link_author author=distver.pause_id %]</td>
+        <td>[% link_author(distver.pause_id) %]</td>
         <td>[% link_distver(distver) %]</td>
         <td>[% date.format(distver.mtime, "%Y-%m-%d") %]</td>
+        <td>[% SET count = distver.count_visible_notes; IF count > 0 %]
+            (<em>[% count %] notes; 
+            latest [% USE date; date.format(distver.latest_visible_note_date, format="%Y-%m-%d") %]</em>)
+        [% END %]</td>
     </tr>
 [% END %]
 </table>

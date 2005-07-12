@@ -9,7 +9,7 @@ use lib qw(../lib /home/ivan/perl);
 use CGI;
 use CGI::Carp 'fatalsToBrowser';
 use Template;
-use AnnoCPAN::Config '../config.pl';
+use AnnoCPAN::Config '../_config.pl';
 use AnnoCPAN::Control;
 
 $ENV{QUERY_STRING} = 

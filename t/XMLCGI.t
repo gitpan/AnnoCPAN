@@ -16,5 +16,5 @@ is ( $cgi->param('mode'),       'show',             'param(mode)' );
 is ( $cgi->param('note_text'),  'This is a note',   'param(note_text)' );
 is ( $cgi->param('id'),         5,                  'param(id)' );
 
-is ( $cgi->header,  "Content-type: text/html\n\n",  'header' );
+is ( $cgi->header,  "Content-type: text/html; charset=UTF-8\n\n",  'header' );
 

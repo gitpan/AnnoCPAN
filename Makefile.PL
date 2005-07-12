@@ -18,7 +18,7 @@ WriteMakefile(
         XML::RSS            => 0,
         XML::Simple         => 0,
         XML::SAX            => 0,
-        Test::Pod           => 1.20,
+        Test::Pod           => 1.31,
 
         # core 5.8 modules
         List::Util          => 0,

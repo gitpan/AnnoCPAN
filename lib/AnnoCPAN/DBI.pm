@@ -1,6 +1,6 @@
 package AnnoCPAN::DBI;
 
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 use strict;
 use warnings;
@@ -65,6 +65,27 @@ sub garbage_collect {
     }
 }
 
+sub count_notes {
+    my ($self) = @_;
+    return $self->sql_count_notes->select_val($self->id);
+}
+
+__PACKAGE__->set_sql(count_notes => 'SELECT count(*) 
+    FROM dist d, pod_dist pd, pod p, note n 
+    WHERE d.id=? AND pd.dist=d.id AND pd.pod=p.id AND n.pod=p.id'
+);
+
+sub latest_note_date {
+    my ($self) = @_;
+    return $self->sql_latest_note_date->select_val($self->id);
+}
+
+__PACKAGE__->set_sql(latest_note_date => 'SELECT n.time
+    FROM dist d, pod_dist pd, pod p, note n 
+    WHERE d.id=? AND pd.dist=d.id AND pd.pod=p.id AND n.pod=p.id
+    ORDER BY n.time DESC LIMIT 1'
+);
+
 =head2 AnnoCPAN::DBI::Pod
 
 Represents a document (typically a module, but it may be some other .pod file),
@@ -103,6 +124,33 @@ __PACKAGE__->set_sql(
 __PACKAGE__->set_sql(
     families => 'SELECT pod id, count(*) c FROM pod_dist GROUP BY id
         HAVING c>1');
+
+__PACKAGE__->set_sql(
+    by_author => "SELECT DISTINCT p.id, p.name 
+        FROM pod p, distver dv, podver pv 
+        WHERE dv.pause_id=? AND pv.distver=dv.id AND pv.pod=p.id");
+
+sub count_notes {
+    my ($self) = @_;
+    return $self->sql_count_notes->select_val($self->id);
+}
+
+__PACKAGE__->set_sql(count_notes => 'SELECT count(*) 
+    FROM note n 
+    WHERE pod=?'
+);
+
+sub latest_note_date {
+    my ($self) = @_;
+    return $self->sql_latest_note_date->select_val($self->id);
+}
+
+__PACKAGE__->set_sql(latest_note_date => 'SELECT time
+    FROM note n 
+    WHERE pod=?
+    ORDER BY time DESC
+    LIMIT 1'
+);
 
 sub join_pods {
     my ($self, @others) = @_;
@@ -181,8 +229,31 @@ sub translate_notes {
     }
 }
 
+sub count_visible_notes {
+    my ($self) = @_;
+    return $self->sql_count_visible_notes->select_val($self->id);
+}
 
-=head2 AnnoCPAN::DBI::DistVer
+__PACKAGE__->set_sql(count_visible_notes => 'SELECT count(*) 
+    FROM distver dv, podver pv, section s, notepos np
+    WHERE dv.id=?  AND pv.distver=dv.id AND s.podver=pv.id AND np.section=s.id
+    AND np.status >= 0'
+);
+
+sub latest_visible_note_date {
+    my ($self) = @_;
+    return $self->sql_latest_visible_note_date->select_val($self->id);
+}
+
+__PACKAGE__->set_sql(latest_visible_note_date => 'SELECT n.time
+    FROM distver dv, podver pv, section s, notepos np, note n
+    WHERE dv.id=?  
+    AND pv.distver=dv.id AND s.podver=pv.id AND np.section=s.id AND np.note=n.id
+    AND np.status >= 0 
+    ORDER BY n.time DESC LIMIT 1'
+);
+
+=head2 AnnoCPAN::DBI::PodVer
 
 Represents a specific version of a document (a "pod").
 Columns:
@@ -220,6 +291,28 @@ sub flush_cache {
         $sth->execute;
     }
 }
+
+sub visible_notepos {
+    my ($self) = @_;
+    my @ret = grep { $_->is_visible } $self->notepos;
+    \@ret;
+}
+
+sub notepos {
+    my ($self) = @_;
+    AnnoCPAN::DBI::NotePos->search_by_podver($self->id);
+}
+
+sub count_visible_notes {
+    my ($self) = @_;
+    return $self->sql_count_visible_notes->select_val($self->id);
+}
+
+__PACKAGE__->set_sql(count_visible_notes => 'SELECT count(*) 
+        FROM notepos np, section s, podver pv
+        WHERE s.podver = pv.id AND np.section = s.id
+        AND np.status>=0 AND pv.id=?'
+);
 
 __PACKAGE__->set_sql( flush_cache => 'UPDATE __TABLE__ SET html=null');
 
@@ -387,10 +480,28 @@ my $recent_notes = AnnoCPAN::Config->option('recent_notes') || 25;
 __PACKAGE__->table('note');
 __PACKAGE__->columns(
     Essential => qw(id pod min_ver max_ver note ip time score user section));
-__PACKAGE__->set_sql(
-    recent =>  "SELECT __ESSENTIAL__ FROM __TABLE__ 
-                ORDER BY time DESC LIMIT $recent_notes"
+
+__PACKAGE__->set_sql(recent =>  "SELECT __ESSENTIAL__ FROM __TABLE__ 
+        ORDER BY time DESC LIMIT $recent_notes");
+
+__PACKAGE__->set_sql(recent_by_author =>  "SELECT DISTINCT n.id
+    FROM note n, distver dv, podver pv, pod p
+    WHERE dv.pause_id=? AND pv.distver=dv.id AND pv.pod=p.id
+    AND n.pod=p.id
+    ORDER BY n.time DESC LIMIT $recent_notes"
 );
+
+sub count_by_author {
+    my ($self, $pause_id) = @_;
+    return $self->sql_count_by_author->select_val($pause_id);
+}
+
+__PACKAGE__->set_sql(count_by_author =>  "SELECT count(distinct n.id)
+    FROM note n, distver dv, podver pv, pod p
+    WHERE dv.pause_id=? AND pv.distver=dv.id AND pv.pod=p.id
+    AND n.pod=p.id"
+);
+
 __PACKAGE__->has_a(pod      => 'AnnoCPAN::DBI::Pod');
 __PACKAGE__->has_a(user     => 'AnnoCPAN::DBI::User');
 __PACKAGE__->has_a(section  => 'AnnoCPAN::DBI::Section'); 
@@ -439,6 +550,7 @@ sub create { # Class::DBI
 }
 
 sub simple_create { shift->SUPER::create(@_) }
+sub simple_update { shift->SUPER::update(@_) }
 
 sub guess_section {
     my ($self, $podver) = @_;
@@ -514,6 +626,12 @@ __PACKAGE__->set_sql(
     podver_note => "SELECT notepos.id FROM notepos, section 
         WHERE notepos.section=section.id AND section.podver=? 
         AND notepos.note=?");
+
+__PACKAGE__->set_sql(
+    by_podver => 'SELECT np.id FROM notepos np, section s, podver pv, note n
+        WHERE s.podver = pv.id AND np.section = s.id AND np.note = n.id
+        AND pv.id=?
+        ORDER BY np.section, n.time');
 
 package AnnoCPAN::DBI::Author;
 use base 'AnnoCPAN::DBI';

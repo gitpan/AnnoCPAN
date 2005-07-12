@@ -1,6 +1,6 @@
 package AnnoCPAN::Archive;
 
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 use strict;
 use warnings;
@@ -35,9 +35,11 @@ if there is any problem.
 
 sub new {
     my ($class, $fname) = @_;
-    return AnnoCPAN::Archive::Zip->new($fname) if $fname =~ /\.zip$/;
-    return AnnoCPAN::Archive::Tar->new($fname) if $fname =~ /\.tar\.gz$/;
-    undef;
+    return AnnoCPAN::Archive::Zip->new($fname) 
+        if $fname =~ /\.zip$/;
+    return AnnoCPAN::Archive::Tar->new($fname) 
+        if $fname =~ /(\.tar\.gz|\.tgz)$/;
+    return;
 }
 
 =item $obj->files

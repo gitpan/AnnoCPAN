@@ -19,7 +19,7 @@ use constant {
     DIST_STORE_ERR      => 4,
 };
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 our @EXPORT_OK = qw(
     DIST_ADDED 
     DIST_OLD 
@@ -311,9 +311,9 @@ sub extract {
         my @files = $self->archive->files;
 
         # check if it's packaged nicely
-        my ($dir) = $files[0] =~ m|^([^/]+/)|;
+        my ($dir) = $files[0] =~ m|^([^/]+)|;
         unless ($dir) {
-            warn "package $fname file[0] ($files[0]) does not in a directory\n" 
+            warn "package $fname file[0] ($files[0]) not relative\n" 
                 if $self->verbose;
             exit DIST_UGLY_PACKAGE;
         }
@@ -322,7 +322,7 @@ sub extract {
                 if $self->verbose;
             exit DIST_UGLY_PACKAGE;
         }
-        my $re = qr/^\Q$dir\E/;
+        my $re = qr/^\Q$dir\E(?:\/|$)/;
         if (first { ! /$re/  } @files) {
             warn "package $fname does not unwrap to a single directory/\n" 
                 if $self->verbose;

@@ -1,15 +1,17 @@
 <table>
-<tr><th>POD</th><th>User</th><th>Time</th></tr>
+<tr><th>POD</th><th>User</th><th>Time</th><th>Note</th></tr>
 [% FOR note = notes %]
+[% IF note.ref_notepos.is_visible %]
 <tr class="[% loop.count % 2 ? 'even' : 'odd' %]">
-    <td><a href="[% root_uri_rel %]/?mode=show_note;note=[% note.id %]#[% note.section.pos %]">[% 
-    note.pod.name %]</a></td>
+    <td>[% link_podver(note.section.podver) %]</td>
     <td>[% IF note.user.id %]
         [% link_user(note.user) %]
     [% ELSE %]
         [% note.ip %]
     [% END %]</td>
-    <td>[% USE date; date.format(note.time, format="%Y-%m-%d %H:%M:%S", gmt=1) %]</td>
+    <td class="date">[% USE date; date.format(note.time, format="%Y-%m-%d %H:%M:%S", gmt=1) %]</td>
+    <td><a href="[% podver_uri(note.section.podver) %]#note_[% note.id %]">[% note.note | truncate(50) %]</a></td>
 </tr>
+[% END %]
 [% END %]
 </table>

@@ -62,6 +62,7 @@ p { line-height: 130%; text-align: justify;}
     background-color: #F0DDBB;
     font-weight: bold;
     padding: 0.5ex;
+    height: 1.3em;
 }
 
 .note_body {
@@ -69,6 +70,10 @@ p { line-height: 130%; text-align: justify;}
     margin: 0;
     padding: 0.5ex;
 }
+
+.note_data { float: left; }
+.note_nav  { float: right; }
+.note_nav a { text-decoration: none; }
 
 #pod2html .note_body p { margin: 0.75ex 0; }
 
@@ -186,6 +191,7 @@ form.float br {
 table { border-collapse: collapse; }
 tr.even { background: #e7f7e2; }
 td { padding: 0.25ex 1em; border: none; }
+.date { font-size: small; }
 
 a:hover  { color: #c50; }
 

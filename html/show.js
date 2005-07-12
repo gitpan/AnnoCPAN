@@ -25,11 +25,11 @@ function init() {
 function init_buttons(node) {
     var links = node.getElementsByTagName('a'); 
     for (var i = 0; i < links.length; i++) {
-        var link = links[i];
-        var mode = null;
-        var note = null;
-        var notepos = null;
-        var section = null;
+        var link    = links[i];
+        var mode    = '';
+        var note    = '';
+        var notepos = '';
+        var section = '';
         if (link.className == "cb") { // create
             mode = 'create';
             note = link;
@@ -39,12 +39,12 @@ function init_buttons(node) {
             && (link.href.match(/mode=edit/))) 
         { // edit
             mode = 'edit';
-            note = link.parentNode.parentNode;
+            note = link.parentNode.parentNode.parentNode;
             notepos = link.href.match(/notepos=(\d+)/)[1];
         } else if (link.className.match(/button/) 
             && (link.href.match(/mode=move/))) 
         { // move
-            note    = link.parentNode.parentNode;
+            note    = link.parentNode.parentNode.parentNode;
             notepos = link.href.match(/notepos=(\d+)/)[1];
             link.onclick = move_link_onclick('move', note, notepos);
         }
@@ -267,9 +267,9 @@ function hide_note() {
 }
 
 function note_plaintext(note) {
-    var s = note.getElementsByTagName('div')[1].innerHTML;
-    s = s.replace(/\s*<p>/g, '');
-    s = s.replace(/\s*<\/p>/g, "\n");
+    var s = note.getElementsByTagName('div')[3].innerHTML;
+    s = s.replace(/\s*<p>/gi, '');
+    s = s.replace(/\s*<\/p>/gi, "\n");
     s = s.replace(/^\s+/, '').replace(/\s+$/, '');
     s = unescape_html(s);
     return s;

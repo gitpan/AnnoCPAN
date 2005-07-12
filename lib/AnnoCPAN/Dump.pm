@@ -1,6 +1,6 @@
 package AnnoCPAN::Dump;
 
-$VERSION = '0.10';
+$VERSION = '0.21';
 
 use strict;
 use warnings;
@@ -76,27 +76,44 @@ sub start_element {
             pos    => $atts->{'{}pos'}{Value},
         );
         return unless $section;
+
+        my $status  = $atts->{'{}status'}{Value};
+        my $note    = $self->{ac_note};
         AnnoCPAN::DBI::NotePos->create({
-            note    => $self->{ac_note},
+            note    => $note,
             score   => $atts->{'{}score'}{Value},
-            status  => $atts->{'{}status'}{Value},
+            status  => $status,
             section => $section,
         });
+        if ($status == AnnoCPAN::DBI::Note::ORIGINAL) {
+            $note->section($section);
+        }
+
+    } elsif ($el->{Name} eq 'content') {
+        $self->{ac_content_chars} = '';
     }
+}
+
+sub characters {
+    my ($self, $el) = @_;
+    $self->{ac_content_chars} .= "$el->{Data}" if defined $self->{ac_content_chars};
 }
 
 sub end_element {
     my ($self, $el) = @_;
+    my $note = $self->{ac_note};
     if ($el->{Name} eq 'note') {
-        my $note = $self->{ac_note};
         my ($np) = $note->notepos;
         if ($np) {
             $note->pod($np->section->podver->pod);
-            $note->update;
+            $note->update; # includes flush
         } else {
             warn "Note without notepos!\n";
             $note->delete;
         }
+    } elsif ($el->{Name} eq 'content') {
+        $note->note($self->{ac_content_chars});
+        $self->{ac_content_chars} = undef;
     }
 }
 

@@ -8,7 +8,7 @@ use warnings;
 use lib qw(../lib /home/ivan/perl);
 use AnnoCPAN::XMLCGI;
 use Template;
-use AnnoCPAN::Config '../config.pl';
+use AnnoCPAN::Config '../_config.pl';
 use AnnoCPAN::Control;
 
 AnnoCPAN::Control->new(

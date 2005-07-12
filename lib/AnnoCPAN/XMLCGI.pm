@@ -1,6 +1,6 @@
 package AnnoCPAN::XMLCGI;
 
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 use strict;
 use warnings;
@@ -82,12 +82,12 @@ sub param {
 
 =item $cgi->header
 
-Returns a very simple header ("Content-type: text/html\n\n").
+Returns a very simple header ("Content-type: text/html; charset=UTF-8\n\n").
 
 =cut
 
 sub header {
-    "Content-type: text/html\n\n";
+    "Content-type: text/html; charset=UTF-8\n\n";
 }
 
 =back

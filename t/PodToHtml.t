@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use AnnoCPAN::Config 't/config.pl';
 use AnnoCPAN::PodToHtml;
 
 #plan 'no_plan';

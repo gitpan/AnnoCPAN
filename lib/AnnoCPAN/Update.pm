@@ -1,11 +1,13 @@
 package AnnoCPAN::Update;
 
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 use strict;
 use warnings;
 
 =head1 NAME
+
+AnnoCPAN::Update - Update AnnoCPAN database from local CPAN mirror
 
 =head1 SYNOPSYS
 
@@ -110,7 +112,7 @@ Load a specific distribution. If it is already in the database, does nothing.
 sub load_dist {
     my ($self, $fname) = @_;
 
-    return unless $fname =~ m{(authors/id/.*(\.tar\.gz|\.zip))$};
+    return unless $fname =~ m{(authors/id/.*(\.tar\.gz|\.tgz|\.zip))$};
     return if $self->{seen}{$1};
 
     print "$fname\n" if $self->verbose;

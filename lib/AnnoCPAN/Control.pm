@@ -1,6 +1,6 @@
 package AnnoCPAN::Control;
 
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 use strict;
 use warnings;
@@ -10,6 +10,7 @@ use AnnoCPAN::DBI;
 use CGI::Cookie;
 use Digest::MD5 qw(md5_hex);
 use IO::String;
+use POSIX qw(strftime);
 
 # it should be possible to subclass this module to use a different
 # interface and templating system by overriding new and the simple
@@ -86,7 +87,9 @@ sub run {
     if ($template) {
         my $default_vars = $self->default_vars;
         $vars = { %$default_vars, %$vars };
-        print $self->header(-cookie => $self->cookies,
+        print $self->header(
+            -charset => 'utf8',
+            -cookie => $self->cookies,
             $type ? (-type => $type) : (),
         );
         $template .= '.html' unless $template =~ /\./;
@@ -140,13 +143,16 @@ sub param_obj {
         or  die "unspecified $name\n";
     my $class = "AnnoCPAN::DBI::$name";
     $key ||= 'id';
+    my @objs;
     for my $value (@values) {
         $key ne 'id' or $value =~ /^\d+$/
-            or  die "invalid $name $value\n";
+            or  die "invalid $name: '$value'\n";
         my $obj = $class->retrieve($key => $value)
             or die "$name '$value' not found\n";
         return $obj unless wantarray;
+        push @objs, $obj;
     }
+    return @objs;
 }
 
 =item $obj->header(@_)
@@ -166,7 +172,9 @@ Print a 303 HTTP redirect header, including the cookies in $obj->cookies.
 sub redirect {
     my ($self, $uri) = @_;
     unless ($uri =~ /^\w+:/) {
-        $uri = AnnoCPAN::Config->option('root_uri_abs') . $uri;
+        require URI;
+        $uri = URI->new(AnnoCPAN::Config->option('root_uri_abs') . $uri);
+        $uri->host($ENV{HTTP_HOST});
     }
     print $self->header(
         -cookie => $self->cookies, 
@@ -462,7 +470,7 @@ sub Create {
         podver   => $podver,
         section  => $section,
         %$vars,
-        message => "here ($section, $podver)" . $podver->name,
+        #message => "here ($section, $podver)" . $podver->name,
     }, "edit");
 }
 
@@ -481,11 +489,20 @@ sub _search_dist {
     $vars ||= {};
     my $dist_name  = $self->param('name');
     return $self->Main unless $dist_name;
+
+    my $author     = uc $self->param('author');
+
     # try distvers first
     my @distvers = AnnoCPAN::DBI::DistVer->search(distver => $dist_name);
+    @distvers = grep { $_->pause_id eq $author } @distvers if $author;
+
+    unless (@distvers) {
+        my ($dist) = AnnoCPAN::DBI::Dist->search(name => $dist_name);
+        @distvers = $dist->distvers if $dist;
+        @distvers = grep { $_->pause_id eq $author } @distvers if $author;
+    }
+
     return $self->choose_distver($vars, \@distvers) if @distvers;
-    my ($dist) = AnnoCPAN::DBI::Dist->search(name => $dist_name);
-    return $self->choose_distver($vars, [$dist->distvers]) if $dist;
     return $self->error("not found");
 }
 
@@ -495,12 +512,18 @@ sub _search_author {
     my $pause_id  = $self->param('name');
     return $self->Main unless $pause_id;
     my @distvers = AnnoCPAN::DBI::DistVer->search(pause_id => $pause_id);
+
+    # get only unique dists XXX this should be done in SQL
     my %seen;
     for (@distvers) {
         $seen{$_->dist} = $_->dist;
     }
+
     return $self->error("not found") unless @distvers;
-    ({%$vars, dists => [ values %seen ], author => uc $pause_id}, 'show_author');
+    ({
+        %$vars, dists => [ values %seen ], author => uc $pause_id,
+        note_count => AnnoCPAN::DBI::Note->count_by_author($pause_id),
+    }, 'show_author');
 }
 
 
@@ -522,6 +545,9 @@ sub _search_both {
         @podvers = AnnoCPAN::DBI::PodVer->search_dist_pod(
             $dist_name, $pod_path);
     }
+    my $author     = uc $self->param('author');
+    @podvers = grep { $_->distver->pause_id eq $author } @podvers if $author;
+
     return $self->error("not found") unless @podvers;
 
     if ($self->param('latest')) {
@@ -649,6 +675,7 @@ sub About {
 }
 
 sub Faq { ({}, 'faq') }
+sub News { ({}, 'news') }
 sub Policy { ({}, 'policy') }
 sub Contact { ({}, 'contact') }
 
@@ -769,7 +796,7 @@ sub _save {
             or return $self->_error("Edit not authorized");
         $note->note($note_text);
         $note->ip($ENV{REMOTE_ADDR});
-        $note->time(time);
+        #$note->time(time);
         $note->update;
         $note->remove_from_object_index;
 
@@ -839,7 +866,7 @@ sub Create_user {
 
     my $user = AnnoCPAN::DBI::User->create({
         username => $login,
-        password => crypt($passwd, "AA"), # XXX nice salt!
+        password => crypt($passwd, $login),
         email    => $email,
         member_since => time,
         privs    => 1,
@@ -946,9 +973,9 @@ sub Main_rss {
     $rss->channel(
         title        => "AnnoCPAN Recent Notes",
         link         => $link, 
-        description  => "CPAN Ratings: " . $self->param('header'),
+        description  => "AnnoCPAN",
         dc => {
-               date       => '2000-08-23T07:00+00:00',
+               date       => strftime('%Y-%m-%dT%H:%M:%S+00:00', gmtime),
                subject    => "Perl",
                creator    => 'itub@cpan.org',
                publisher  => 'itub@cpan.org',
@@ -964,14 +991,78 @@ sub Main_rss {
     );
 
     for my $note (@{$vars->{recent}}) {
+        next unless $note->section;
+        my $podver = $note->section->podver;
         $rss->add_item(
             title       => $note->pod->name,
-            link        => "$link/?mode=show_note;id=" . $note->id
-                             . '#' . $note->section->pos,
+            link        => sprintf("$link/~%s/%s/%s#note_%s",
+                $podver->distver->pause_id, $podver->distver->distver, 
+                $podver->path, $note->id),
             description => $note->note,
             dc => {
-                   creator  => ($note->user->username || $note->ip),
-                   # date
+                   creator  => ($note->user->username),
+                   date     => strftime('%Y-%m-%dT%H:%M:%S+00:00', gmtime($note->time)),
+            },
+        );    
+
+    }
+
+    ({ %$vars, rss => $rss }, 'rss', 'application/rdf+rss');
+}
+
+
+sub Author_recent {
+    my ($self, $vars) = @_;
+    $vars ||= {};
+    my $pause_id  = $self->param('pause_id');
+    my @recent = AnnoCPAN::DBI::Note->search_recent_by_author($pause_id);
+    ({notes => \@recent, author => uc $pause_id, %$vars }, "show_author_recent");
+}
+
+sub Author_rss {
+    my ($self, $vars) = @_;
+    $vars ||= {};
+    my $pause_id  = $self->param('name');
+    return $self->Main unless $pause_id;
+    my @pods = AnnoCPAN::DBI::Pod->search_by_author($pause_id);
+    my @notes = map { $_->notes } @pods;
+
+    require XML::RSS;
+    my $rss  = XML::RSS->new(version => '1.0');
+    my $link = AnnoCPAN::Config->option('root_uri_abs');
+
+    $rss->channel(
+        title        => "AnnoCPAN Notes for PAUSE ID '$pause_id'",
+        link         => $link, 
+        description  => "AnnoCPAN Notes for PAUSE ID '$pause_id'",
+        dc => {
+               date       => strftime('%Y-%m-%dT%H:%M:%S+00:00', gmtime),
+               subject    => "Perl",
+               creator    => 'itub@cpan.org',
+               publisher  => 'itub@cpan.org',
+               rights     => 
+                    'Redistributable under the same terms as Perl itself',
+               language   => 'en-us',
+              },
+        syn => {
+                updatePeriod     => "daily",
+                updateFrequency  => "24",
+                updateBase       => "1901-01-01T00:00+00:00",
+               },
+    );
+
+    for my $note (@notes) {
+        next unless $note->section;
+        my $podver = $note->section->podver;
+        $rss->add_item(
+            title       => $note->pod->name,
+            link        => sprintf("$link/~%s/%s/%s#note_%s",
+                $podver->distver->pause_id, $podver->distver->distver, 
+                $podver->path, $note->id),
+            description => $note->note,
+            dc => {
+                   creator  => ($note->user->username),
+                   date     => strftime('%Y-%m-%dT%H:%M:%S+00:00', gmtime($note->time)),
             },
         );    
     }
@@ -997,7 +1088,9 @@ sub Flush {
 sub my_html {
     my ($self, $podver) = @_;
     my $html = '';
-    if (AnnoCPAN::Config->option('cache_html')) {
+    if (AnnoCPAN::Config->option('cache_html')
+        and $self->mode !~ /(Edit|Move|Create)/
+    ) {
         $html = $podver->html;
         return $html if $html;
     }
@@ -1006,12 +1099,10 @@ sub my_html {
         PRE_PROCESS => 'util.tt',
     );
     my $vars = {
+        %{ $self->default_vars },
         podver => $podver,
-        root_uri_rel => AnnoCPAN::Config->option('root_uri_rel'),
-        img_root     => AnnoCPAN::Config->option('img_root'),
-        root_uri_abs => AnnoCPAN::Config->option('root_uri_abs'),
     };
-    $tt->process('pod_view.html', $vars, \$html) or print $@;
+    $tt->process('pod.html', $vars, \$html) or print $@;
     if (AnnoCPAN::Config->option('cache_html')) {
         $podver->html($html);
         $podver->update;

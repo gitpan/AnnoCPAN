@@ -1,15 +1,21 @@
 [%# vars: notepos, note, sect %]
+
+[% next_note_index = note_index + 1; prev_note_index = note_index - 1 %]
+
 [% UNLESS notepos && ! notepos.is_visible %]
-<div class="note [% notepos.score_class %]">
+<div class="note [% notepos.score_class %]" id="note_[% note.id %]">
 <div class="note_header">
-    [% IF note.user.id %]
-        [% link_user(note.user) %]
-    [% ELSE %]
-        [% note.ip %]
-    [% END %]
+    <div class="note_data">
+    [% link_user(note.user) %]
     ([% USE date; date.format(note.time, format="%Y-%m-%d %H:%M:%S", gmt=1) %])
     <a class="button u_[% note.user.id %]" href="[% root_uri_rel %]/e/?mode=edit;notepos=[% notepos.id %]#noteform">[edit]</a>
     <a class="button u_[% note.user.id %]" href="[% root_uri_rel %]/e/?mode=move;notepos=[% notepos.id %]#[% notepos.section.pos %]">[move]</a>
+    </div>
+    <div class="note_nav">
+    [% IF note_index > 0 %]<a href="#note_[% all_notepos.$prev_note_index.note.id %]" title="Previous note">«</a>[% END %]
+    <a href="[% podver_uri(podver) %]#note_[% note.id %]" title="Bookmarkable link to this note">§</a>
+    [% IF note_index < all_notepos.size - 1 %]<a href="#note_[% all_notepos.$next_note_index.note.id %]" title="Next note">»</a>[% END %]
+    </div>
 </div> <!-- note_header -->
 <div class="note_body"
     title="Note info: pos=[% notepos.section.pos %] ([% notepos.score / 10 %]% confidence); status=[% notepos.status %]">
@@ -24,3 +30,4 @@
 </div>
 </div> <!-- note -->
 [% END %]
+[% note_index = note_index + 1 %]
