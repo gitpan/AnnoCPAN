@@ -1,6 +1,6 @@
 <div id="login_form">
 [% IF user %]
-    <i>Logged in as <b>[% user.username %]</b></i>
+    <i>Logged in as <b>[% link_user(user) %]</b></i>
 [% ELSE %]
 <form action="./" method="post" class="float">
     <input type="hidden" name="mode" value="login">

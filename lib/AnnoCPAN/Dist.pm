@@ -8,6 +8,7 @@ use AnnoCPAN::Archive;
 use AnnoCPAN::DBI;
 use AnnoCPAN::PodParser;
 use IO::String;
+use Digest::MD5 qw(md5_hex);
 use File::stat ();
 use base qw(CPAN::DistnameInfo Exporter);
 use overload '""' => 'distvname';
@@ -19,7 +20,7 @@ use constant {
     DIST_STORE_ERR      => 4,
 };
 
-our $VERSION = '0.21';
+our $VERSION = '0.22';
 our @EXPORT_OK = qw(
     DIST_ADDED 
     DIST_OLD 
@@ -213,7 +214,7 @@ Return true if the distribution has a lib/ directory.
 sub has_lib {
     my ($self) = @_;
     defined $self->{has_lib} and return $self->{has_lib};
-    $self->{has_lib} = (first { m|^[^/]+/lib/| } $self->files) ? 1 : 0;
+    $self->{has_lib} = (first { m|^(?:\./)?[^/]+/lib/| } $self->files) ? 1 : 0;
 }
 
 =item $obj->namespace_from_path($fname)
@@ -226,6 +227,7 @@ its path in the perl module hierarchy. For example, given
 
 sub namespace_from_path {
     my ($dist, $name) = @_;
+    $name =~ s/^\.\///;
     my $ret;
     if ($dist->has_lib) { # modern style
         if ($name =~ s|.*/lib/||) {
@@ -303,6 +305,7 @@ sub extract {
     return ($distver, DIST_OLD) if $distver;
     my $status;
 
+    AnnoCPAN::DBI->reset_dbh;
     unless (fork) {
         # child process; extract the distribution
 
@@ -328,7 +331,7 @@ sub extract {
                 if $self->verbose;
             exit DIST_UGLY_PACKAGE;
         }
-        printf "%s\t$rel_fname\t%d files\n", scalar localtime, scalar @files 
+        printf "\t$rel_fname\t%d files\n", scalar @files 
             if $self->verbose;
 
         # load distver into the database
@@ -380,15 +383,17 @@ Store a pod.
 sub store_podver {
     my ($self, $file, $code) = @_;
 
-    print "\t$file" if $self->verbose;
+    print "\t\t$file" if $self->verbose;
     my $path = $file;
     $path =~ s|^.*?/||;
+
+    my $signature = $self->compute_signature($code);
 
     # create podver
     my $podver = AnnoCPAN::DBI::PodVer->create({
         distver     => $self->dbi_distver,
-        #pod         => $pod,
         path        => $path,
+        signature   => $signature,
     });
 
     # parse pod
@@ -420,6 +425,11 @@ sub store_podver {
 
 }
 
+sub compute_signature {
+    my ($self, $s) = @_;
+    return md5_hex($s);
+}
+
 =item $obj->store_distver
 
 Add a record to the database (using AnnoCPAN::DBI::Dist). Returns the new
@@ -436,14 +446,22 @@ sub store_distver {
         || AnnoCPAN::DBI::Dist->create({name => $self->dist});
 
     # create distver
-    $self->{dbi_distver} = AnnoCPAN::DBI::DistVer->create({
+    my $distver = $self->{dbi_distver} = AnnoCPAN::DBI::DistVer->create({
         dist        => $dist,
         pause_id    => $self->cpanid,
         version     => $self->version,
         path        => $self->rel_pathname,
         distver     => $self->distvname,
         mtime       => $self->mtime,
+        maturity    => $self->maturity eq 'released' ? 1 : 0,
     });
+
+    unless ($dist->creation_time) {
+        $dist->creation_time($self->mtime);
+        $dist->update;
+    }
+
+    return $distver;
 }
 
 =back

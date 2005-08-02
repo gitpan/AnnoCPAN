@@ -1,6 +1,6 @@
 package AnnoCPAN::Dump;
 
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 use strict;
 use warnings;

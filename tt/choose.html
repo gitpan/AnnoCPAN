@@ -15,7 +15,7 @@
     <td>[% link_author(podver.distver.pause_id) %]</td>
     <td>[% link_distver(podver.distver) %]</td>
     <td>[% link_podver(podver) %]</td>
-    <td>[% USE date; date.format(podver.mtime, format="%Y-%m-%d", gmt=1) %]</td>
+    <td>[% YMD.format(podver.mtime) %]</td>
     </tr>
 [% END %]
 </table>

@@ -28,4 +28,5 @@ Options:
     --help      -h  This help
     --verbose   -v  Show progress
 END
+    exit;
 }

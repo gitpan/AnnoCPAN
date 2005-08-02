@@ -1,6 +1,6 @@
 package AnnoCPAN::DBI;
 
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 use strict;
 use warnings;
@@ -36,24 +36,54 @@ The base class; based on Class::DBI.
 
 =cut
 
-__PACKAGE__->connection(
-    AnnoCPAN::Config->option('dsn'),
-    AnnoCPAN::Config->option('db_user'),
-    AnnoCPAN::Config->option('db_passwd'),
-);
+our $dbh;
+
+sub reset_dbh {
+    $dbh = undef;
+}
+
+sub db_Main {
+    my ($self) = @_;
+    $dbh ||= DBI->connect(
+        AnnoCPAN::Config->option('dsn'),
+        AnnoCPAN::Config->option('db_user'),
+        AnnoCPAN::Config->option('db_passwd'),
+        { $self->_default_attributes },
+    );
+    #no warnings 'uninitialized';
+    #warn sprintf "db_Main; dbh=($dbh);, ping=(%s); mysql_auto_reconnect=(%s,%s,%s)\n", $dbh->ping, 
+        #$dbh->{mysql_auto_reconnect}, $dbh->{mysql_dbd_stats}{auto_reconnects_ok}, $dbh->{mysql_dbd_stats}{auto_reconnects_failed};
+    return $dbh;
+}
 
 =head2 AnnoCPAN::DBI::Dist
 
 Represents a distribution (regardless of version); has the following columns:
 
-    id name 
+    id
+    name
+    rating
+    review_count
+    creation_time
 
 =cut
 
 package AnnoCPAN::DBI::Dist;
 use base 'AnnoCPAN::DBI';
 __PACKAGE__->table('dist');
-__PACKAGE__->columns(Essential => qw(id name));
+__PACKAGE__->columns(Essential => qw(id name rating review_count creation_time));
+
+sub stars {
+    my ($self) = @_;
+    return int($self->rating / 20 + 0.5);
+}
+
+sub rating5 { shift->rating / 20 }
+
+sub latest_distver {
+    my ($self) = @_;
+    return ($self->distvers)[-1];
+}
 
 sub garbage_collect {
     my ($class) = @_;
@@ -86,12 +116,22 @@ __PACKAGE__->set_sql(latest_note_date => 'SELECT n.time
     ORDER BY n.time DESC LIMIT 1'
 );
 
+sub recent {
+    my ($self, $start, $count) = @_;
+    $start ||= 0;
+    $count ||= 25;
+    return $self->retrieve_from_sql(
+        "1 ORDER BY creation_time DESC LIMIT $start, $count");
+
+}
+
 =head2 AnnoCPAN::DBI::Pod
 
 Represents a document (typically a module, but it may be some other .pod file),
 regardless of version. Columns:
 
-    id name
+    id
+    name
 
 =cut
 
@@ -189,7 +229,9 @@ sub join_pods {
 Links a pod with a dist (its a many-to-many relationship).
 Columns:
 
-    id dist pod
+    id 
+    dist 
+    pod
 
 =cut
 
@@ -210,14 +252,21 @@ sub podvers { return shift->pod->podvers }
 Represents a specific version of a distribution
 Columns:
 
-    id dist version path pause_id distver mtime
+    id
+    dist 
+    version 
+    path 
+    pause_id 
+    distver 
+    mtime
 
 =cut
 
 package AnnoCPAN::DBI::DistVer;
 use base 'AnnoCPAN::DBI';
 __PACKAGE__->table('distver');
-__PACKAGE__->columns(Essential => qw(id dist version path pause_id distver mtime));
+__PACKAGE__->columns(Essential => qw(id dist version path pause_id 
+    distver mtime maturity));
 __PACKAGE__->has_a(dist => 'AnnoCPAN::DBI::Dist');
 
 sub translate_notes {
@@ -258,14 +307,19 @@ __PACKAGE__->set_sql(latest_visible_note_date => 'SELECT n.time
 Represents a specific version of a document (a "pod").
 Columns:
 
-    id pod distver path description html
+    id
+    pod
+    distver
+    path
+    description
+    html
 
 =cut
 
 package AnnoCPAN::DBI::PodVer;
 use base 'AnnoCPAN::DBI';
 __PACKAGE__->table('podver');
-__PACKAGE__->columns(Essential => qw(id pod distver path description));
+__PACKAGE__->columns(Essential => qw(id pod distver path description signature));
 __PACKAGE__->columns(Others => qw(html));
 __PACKAGE__->has_a(pod => 'AnnoCPAN::DBI::Pod');
 __PACKAGE__->has_a(distver => 'AnnoCPAN::DBI::DistVer');
@@ -326,11 +380,24 @@ __PACKAGE__->set_sql(
         WHERE podver.distver=distver.id AND distver.dist=dist.id
         AND dist.name=? AND podver.path=?');
 
+__PACKAGE__->set_sql(note_count_all => '
+    SELECT dv.pause_id, dv.path dist_path, pv.path pod_path, 
+        count(*) note_count
+    FROM distver dv, podver pv, section s, notepos np
+    WHERE pv.distver=dv.id AND s.podver=pv.id AND np.section=s.id
+    AND np.status >= 0 GROUP BY dist_path, pod_path 
+    ORDER BY dist_path, pod_path'
+);
+
 =head2 AnnoCPAN::DBI::Section
 
 Represents a paragraph in a POD document. Columns:
 
-    id podver pos content type 
+    id
+    podver
+    pos
+    content
+    type 
 
 =cut
 
@@ -344,27 +411,26 @@ __PACKAGE__->columns(Essential => qw(id podver pos content type));
 __PACKAGE__->has_a(podver => 'AnnoCPAN::DBI::PodVer');
 __PACKAGE__->add_trigger(before_delete  => \&before_delete);
 
-{
-    my $parser = AnnoCPAN::PodToHtml->new;
 
-    my %methods = (
-        VERBATIM,  'verbatim',
-        TEXTBLOCK, 'textblock',
-        COMMAND,   'command',
-    );
+my %methods = (
+    VERBATIM,  'verbatim',
+    TEXTBLOCK, 'textblock',
+    COMMAND,   'command',
+);
 
-    sub html {
-        my ($self) = @_;
-        my $method = $methods{$self->type};
-        my @args = $self->content;
-        if ($method eq 'command') {
-            # split into command and content
-            @args = $args[0] =~ /==?(\S+)\s+(.*)/s;
-        }
-        my $html = $parser->$method(@args);
+
+sub html {
+    my ($self) = @_;
+    $self->{parser} ||= AnnoCPAN::PodToHtml->new;
+    my $method = $methods{$self->type};
+    my @args = $self->content;
+    if ($method eq 'command') {
+        # split into command and content
+        @args = $args[0] =~ /==?(\S+)\s+(.*)/s;
     }
-
+    my $html = $self->{parser}->$method(@args);
 }
+
 
 sub before_delete {
     my ($self) = @_;
@@ -389,8 +455,16 @@ sub before_delete {
 
 Represents an AnnoCPAN user. Columns:
 
-    id username password name email profile 
-    reputation member_since last_visit privs
+    id
+    username
+    password
+    name
+    email
+    profile 
+    reputation
+    member_since
+    last_visit
+    privs
 
 Note that some of these columns are unused, but they exist for historical
 reasons.
@@ -455,7 +529,16 @@ __PACKAGE__->columns(Essential => qw(id note user value));
 
 Represents a note. Columns:
 
-    id pod min_ver max_ver note ip time score user section
+    id
+    pod
+    min_ver
+    max_ver
+    note
+    ip
+    time
+    score
+    user
+    section
 
 Note that some of these columns are unused, but they exist for historical
 reasons.
@@ -481,8 +564,14 @@ __PACKAGE__->table('note');
 __PACKAGE__->columns(
     Essential => qw(id pod min_ver max_ver note ip time score user section));
 
-__PACKAGE__->set_sql(recent =>  "SELECT __ESSENTIAL__ FROM __TABLE__ 
-        ORDER BY time DESC LIMIT $recent_notes");
+sub recent {
+    my ($self, $start, $count) = @_;
+    $start ||= 0;
+    $count ||= $recent_notes;
+    return $self->retrieve_from_sql(
+        "1 ORDER BY time DESC LIMIT $start, $count");
+
+}
 
 __PACKAGE__->set_sql(recent_by_author =>  "SELECT DISTINCT n.id
     FROM note n, distver dv, podver pv, pod p
@@ -531,6 +620,7 @@ sub create { # Class::DBI
         note => $note, section => $section, 
         score => SCALE, status => ORIGINAL });
 
+    $self->reset_dbh;
     unless (fork) {
         # child process
         nice(+19);
@@ -576,8 +666,9 @@ sub guess_section {
         AnnoCPAN::DBI::NotePos->create({ note => $self, 
             section => $best_sect->{id}, score => int($max_sim * SCALE),
             status => CALCULATED });
+        return 1;
     }
-
+    return;
 }
 
 sub update {
@@ -601,6 +692,37 @@ sub ref_notepos {
     AnnoCPAN::DBI::NotePos->retrieve(note => $self, section => $self->section);
 }
 
+sub html {
+    my ($self) = @_;
+
+    my $p = AnnoCPAN::PodToHtml->new(annocpan_simple => 1);
+    my $pod = $self->note;
+
+    # clean up and split the pod
+    $pod =~ s/\r\n?/\n/g;       # normalize newlines
+    $pod =~ s/^\s*\n//;         # get rid of leading blank lines
+    my @paragraphs = split /\n\s*\n/, $pod;
+
+    my $errors = '';
+    $p->errorsub(sub {
+        my $err = shift;
+        $err =~ s/at line.*//;
+        for ($err) {
+            s/&/&amp;/g;
+            s/</&lt;/g;
+            s/>/&gt;/g;
+        }
+        $errors .= qq{<p class="error">$err</p>\n};
+    });
+
+    my $ret = '';
+    for my $para (@paragraphs) {
+        my $method = $para =~ /^ / ? 'verbatim' : 'textblock';
+        $ret .= $p->$method($para);
+    }
+    return $errors . $ret;
+}
+
 package AnnoCPAN::DBI::NotePos;
 use base 'AnnoCPAN::DBI';
 __PACKAGE__->table('notepos');
@@ -613,6 +735,24 @@ sub is_visible {
     ($self->status != AnnoCPAN::DBI::Note::HIDDEN);
 }
 
+sub hide {
+    my ($self) = @_;
+    return unless $self->is_visible;
+    $self->status(AnnoCPAN::DBI::Note::HIDDEN);
+    $self->update;
+    $self->podver->html('');
+    $self->podver->update;
+}
+
+sub unhide {
+    my ($self) = @_;
+    return if $self->is_visible;
+    $self->status(AnnoCPAN::DBI::Note::MOVED);
+    $self->update;
+    $self->podver->html('');
+    $self->podver->update;
+}
+
 sub score_class {
     my ($self) = @_;
     my $score = $self->score;
@@ -620,6 +760,7 @@ sub score_class {
 }
 
 sub time   { shift->note->time }
+sub distver_mtime   { shift->section->podver->mtime }
 sub podver { shift->section->podver }
 
 __PACKAGE__->set_sql(
@@ -640,7 +781,8 @@ __PACKAGE__->columns(Essential => qw(id pause_id name email url));
 
 # ONE TO MANY
 
-AnnoCPAN::DBI::Dist->has_many(distvers => 'AnnoCPAN::DBI::DistVer');
+AnnoCPAN::DBI::Dist->has_many(distvers => 'AnnoCPAN::DBI::DistVer',
+    { order_by => 'mtime' });
 AnnoCPAN::DBI::Pod->has_many(podvers => 'AnnoCPAN::DBI::PodVer');
 AnnoCPAN::DBI::Pod->has_many(notes => 'AnnoCPAN::DBI::Note');
 AnnoCPAN::DBI::Pod->has_many(pod_dists => 'AnnoCPAN::DBI::PodDist');

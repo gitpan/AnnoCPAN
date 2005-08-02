@@ -1,5 +1,5 @@
-#!/home/ivan/bin/perl
 #!/home/ivan/bin/speedy
+#!/home/ivan/bin/perl
 #!/usr/bin/perl
 
 use strict;

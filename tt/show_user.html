@@ -1,8 +1,8 @@
-[% PROCESS header.html title="User info -- " _ a_user.username  %]
+[% PROCESS header.html title="User info for " _ a_user.username  %]
 [% PROCESS login_form.html %]
 [% PROCESS form.html %]
 
-<h2>User Info -- [% a_user.username %]</h2>
+<h2>User Info for <em>[% a_user.username %]</em></h2>
 
 <h3>Notes by [% a_user.username %]</h3>
 

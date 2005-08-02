@@ -1,6 +1,6 @@
 package AnnoCPAN::PodToHtml;
 
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 use strict;
 use warnings;
@@ -61,7 +61,9 @@ sub verbatim {
         s/(?<!\0)>/&gt;/g;
         s/\0//g;
     }
-    my $ret = "<div class=\"content\"><div><pre>$text</pre></div></div>\n";
+    my $ret = "<pre>$text</pre>\n";
+    $ret = "<div class=\"content\"><div>$ret</div></div>\n"
+        unless $self->{annocpan_simple};
     if ($self->{annocpan_print}) {
         my $out_fh = $self->output_handle();
         print $out_fh $ret;
@@ -80,7 +82,9 @@ sub textblock {
         s/(?<!\0)>/&gt;/g;
         s/\0//g;
     }
-    my $ret = "<div class=\"content\"><p>$p</p></div>\n";
+    my $ret = "<p>$p</p>\n";
+    $ret = "<div class=\"content\">$ret</div>\n"
+        unless $self->{annocpan_simple};
     if ($self->{annocpan_print}) {
         my $out_fh = $self->output_handle();
         print $out_fh $ret;
@@ -118,11 +122,20 @@ sub interior_sequence {
     $ret;
 }
 
+
+# trims surrounding whitespace, replaces interior whitespace by underscores,
+# removes HTML tags, and URI-escapes non-word characters
 sub filter_anchor {
     my ($s) = @_;
     $s = lc $s;
-    $s =~ s/\s+/_/g;
-    $s =~ s/\W+//g;
+    for ($s) {
+        s/^\s+//; 
+        s/\s+$//;
+        s/\s+/_/g; 
+        s/<.*?>//g;
+        s/\0//g;
+        s/(\W)/sprintf "%%%02x", ord($1)/eg; 
+    }
     $s;
 }
 
@@ -169,18 +182,41 @@ sub ac_i_S { "\0<span class=\"nbs\"\0>$_[1]\0</span\0>" }
 sub ac_i_Z { "" }
 sub ac_i_L { 
     my ($self, $ref) = @_ ;
-    if ($ref =~ /^(?:https?|ftp):/i) { # uri
-        return "\0<a href='$ref'\0>$ref\0</a\0>";
+    no warnings 'uninitialized';
+    my ($base, $text, $name, $sect);
+    if ($ref =~ m{^(?:https?|ftp)://}i) { # uri
+        $base = $text = $ref;
+        return qq{\0<a href="$ref"\0>$ref\0</a\0>};
+    } elsif ($ref =~ /^"([^\/]*)"$/) {
+        $sect = $1;
     } else {
-        my ($text, $name, $sect) = $ref =~ /^
+        my $rest;
+        ($text, $rest) = $ref =~ /^
             (?:([^|]*) \|)?  # text
-            ([^\/]*)         # name
-            (?:\/(.*))?      # sect
+            (.*)             # rest
         /x;
-        $text = $text || $name || $sect;
-        $name .= "#" . filter_anchor($sect) if $sect;
-        return qq{\0<a href="$root_uri_rel/perldoc?$name"\0>$text\0</a\0>};
+        ($name, $sect) = split /(?<!<)\//, $rest, 2;
+        #print "($text,$name,$sect)\n";
     }
+    $sect =~ s/^"|"$//g;
+
+    if (! length $text and ! length $sect and $name =~ /[\s<>]/) {
+        # deprecated-style local link
+        $sect = $name;
+        $name = '';
+    }
+    #$text =~ s/^"|"$//g;
+
+    # figure out link text
+    if ($sect and $name and ! $text) {
+        $text = qq{"$sect" in $name} 
+    } else {
+        $text = $text || $name || qq{"$sect"};
+    }
+        
+    $base = $name ? "$root_uri_rel/perldoc?" : $base;
+    my $loc  = $sect ? "#" . filter_anchor($sect) : '';
+    return qq{\0<a href="$base$name$loc"\0>$text\0</a\0>};
 }
 
 {

@@ -5,6 +5,13 @@ WriteMakefile(
     NAME            => 'AnnoCPAN',
     VERSION_FROM    => 'lib/AnnoCPAN.pm', 
     NORECURS        => 1, 
+    EXE_FILES       => [qw(
+        bin/ac_cpanratings
+        bin/ac_recent_dists_rss
+        bin/annocpan_load
+        bin/annocpan_undump
+        bin/create_annopod_db
+    )],
     PREREQ_PM       => {
         # non-core modules
         Archive::Tar        => 0,
@@ -18,7 +25,9 @@ WriteMakefile(
         XML::RSS            => 0,
         XML::Simple         => 0,
         XML::SAX            => 0,
-        Test::Pod           => 1.31,
+        Test::Pod           => 1.20,
+        Lingua::EN::Inflect => 0,
+        Pod::Parser         => 1.31,
 
         # core 5.8 modules
         List::Util          => 0,

@@ -11,6 +11,6 @@ hr {
     margin: 8px 0;
 }
 
-div.noteblock {
+div.noteblock, div.noteblock_inline {
     margin: 0.5ex 10%;
 }

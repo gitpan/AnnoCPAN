@@ -8,7 +8,8 @@
 &gt;
 [% link_dist(distver.dist) %]
 [% distver.version %] 
-<span class="mtime">([% USE date; date.format(distver.mtime, "%Y-%m-%d") %])</span>
+<span class="mtime">([% YMD.format(distver.mtime) %])</span>
+[% rating(distver.dist) %]
 </h2>
 
 <p class="sisters">
@@ -29,8 +30,8 @@
         <td>[% link_podver(podver); %]</td>
         <td>[% podver.description %]</td>
         <td>[% SET count = podver.count_visible_notes; IF count > 0 %]
-            (<em>[% count %] notes;
-                latest [% USE date; date.format(podver.pod.latest_note_date, format="%Y-%m-%d") %]</em>)[% END %]</td>
+            (<em>[% NO('note', count) %];
+                latest [% YMD.format(podver.pod.latest_note_date) %]</em>)[% END %]</td>
     </tr>
 [% END %]
 </table>

@@ -43,6 +43,31 @@ p { line-height: 130%; text-align: justify;}
     color: inherit;
 }
 
+.motd { 
+    margin: 1em 10% 0 10%; 
+    font-size: 95%;
+}
+
+.motd h3 { 
+    background-color: #6c9;
+    width: 50%;
+    margin: 1ex 0 0 0;
+    padding: 2px 10px 2px 10px;
+    color: #042;
+}
+.motd_body { 
+    text-align:left;
+    border: 3px solid #6c9;
+    padding: 0.5ex;
+}
+
+.motd_more { 
+    margin: 3px 10%; 
+    font-size: 75%;
+    text-align: right;
+    font-style: italic;
+}
+
 .hidden { display: none; }
 
 .sisters { font-size: 80%; }
@@ -51,12 +76,14 @@ p { line-height: 130%; text-align: justify;}
     border: 3px dotted black; }
 
 /* notes */
-.noteblock {
+.noteblock, .noteblock_inline {
     font-size: 80%;
 }
 .note {
     margin: 0 0 5px;
 }
+
+.note p { text-align: left; }
 
 .note_header {
     background-color: #F0DDBB;
@@ -74,8 +101,12 @@ p { line-height: 130%; text-align: justify;}
 .note_data { float: left; }
 .note_nav  { float: right; }
 .note_nav a { text-decoration: none; }
+#pod2html a.purple { text-decoration: none; color: #d8bfd8;
+    /* position: relative; bottom: 5px; */
+}
 
 #pod2html .note_body p { margin: 0.75ex 0; }
+#pod2html .note_body pre { background: none; border: none; }
 
 .button { display: none; font-size: 85%; }
 
@@ -188,12 +219,23 @@ form.float br {
 #noteform #note_text { padding: 0 10px 0 0; background: #FEFFD7;  }
 #noteform textarea { width: 100%; }
 
+/* misc */
 table { border-collapse: collapse; }
 tr.even { background: #e7f7e2; }
-td { padding: 0.25ex 1em; border: none; }
+td, th { padding: 0.25ex 1em; border: none; }
 .date { font-size: small; }
 
 a:hover  { color: #c50; }
 
-/* misc */
 .mtime { font-size: 85%; }
+.pager { text-align: center; margin: 10px 0; }
+
+/* note_help */
+#note_help { font-size: 85% }
+#note_help h2 { color: #007733; }
+#note_help table { 
+    border-top:    2px solid black;
+    border-bottom: 2px solid black;
+}
+#note_help th { border-bottom: 1px solid black; text-align: left; }
+#note_help dt { font-weight: bold; }

@@ -1,6 +1,6 @@
 package AnnoCPAN::Update;
 
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 use strict;
 use warnings;
@@ -74,9 +74,13 @@ If called as a class method, it calls the constructor automatically.
 sub run {
     my $self = shift;
     return $self->new(@_)->run unless ref $self;
+    $self->log('Beginning update');
     $self->load_db;
+    $self->log('Deleting missing distvers');
     $self->delete_missing;
+    $self->log('Collecting garbage');
     $self->garbage_collect;
+    $self->log('Done');
 }
 
 
@@ -115,7 +119,7 @@ sub load_dist {
     return unless $fname =~ m{(authors/id/.*(\.tar\.gz|\.tgz|\.zip))$};
     return if $self->{seen}{$1};
 
-    print "$fname\n" if $self->verbose;
+    $self->log($fname);
     if (my $dist = $self->{dist_class}->new(
         $fname, verbose => $self->verbose)) 
     {
@@ -142,7 +146,7 @@ sub delete_missing {
         my $path = $distver->path;
         #print "checking $path\n";
         unless (-e "$cpan/$path") {
-            print "deleting entry for $path from database\n" if $self->verbose;
+            $self->log("deleting entry for $path from database");
             $distver->delete;
         }
     }
@@ -162,6 +166,11 @@ sub garbage_collect {
 }
 
 sub verbose     { shift->{verbose} }
+
+sub log {
+    my ($self, $message) = @_;
+    printf "%s\t%s\n", scalar localtime, $message if $self->verbose;
+}
 
 =back
 

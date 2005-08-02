@@ -2,7 +2,7 @@
 [% PROCESS login_form.html %]
 [% PROCESS form.html %]
 
-<h2>[% dist.name %]</h2>
+<h2>[% dist.name %] [% rating(dist) %]</h2>
 
 <p class="sisters">
 [% distver = dist.distvers.0 %]
@@ -18,15 +18,14 @@
 </p>
 
 <table>
-[% USE date %]
 [% FOR distver = distvers.nsort('mtime').reverse %]
     <tr class="[% loop.count % 2 ? 'even' : 'odd' %]">
         <td>[% link_author(distver.pause_id) %]</td>
         <td>[% link_distver(distver) %]</td>
-        <td>[% date.format(distver.mtime, "%Y-%m-%d") %]</td>
+        <td>[% YMD.format(distver.mtime) %]</td>
         <td>[% SET count = distver.count_visible_notes; IF count > 0 %]
-            (<em>[% count %] notes; 
-            latest [% USE date; date.format(distver.latest_visible_note_date, format="%Y-%m-%d") %]</em>)
+            (<em>[% NO('note', count) %]; 
+            latest [% YMD.format(distver.latest_visible_note_date) %]</em>)
         [% END %]</td>
     </tr>
 [% END %]

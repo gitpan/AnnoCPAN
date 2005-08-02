@@ -1,3 +1,6 @@
+[%- USE YMD = date(format="%Y-%m-%d", gmt=1); -%]
+[%- USE YMD_HMS = date(format="%Y-%m-%d %H:%M:%S", gmt=1); -%]
+
 [%- MACRO link_distver(distver) BLOCK -%]
     <a href="[% root_uri_rel %]/~[% distver.pause_id %]/[% distver.distver %]">[% distver.distver %]</a> 
 [%- END -%]
@@ -12,8 +15,8 @@
 [%- MACRO link_dist_pod_latest(dist,pod) BLOCK -%]
     <a href="[% root_uri_rel %]/dist/[% dist.name %]/[% pod.path %]?latest=1">[% pod.name %]</a>[%- END -%]
 
-[%- BLOCK link_dist_name -%]
-    <a href="[% root_uri_rel %]/dist/[% name %]">[% name %]</a>
+[%- MACRO link_dist_name(name) BLOCK -%]
+    <a href="[% root_uri_rel %]/dist/[% name %]?latest=1">[% name %]</a>
 [%- END -%]
 
 [%- MACRO link_author(author) BLOCK -%]
@@ -34,6 +37,10 @@
 
 [%- MACRO link_perldoc(pod) BLOCK -%]
     <a href="[% root_uri_rel %]/perldoc?[% pod.name %]">[% pod.name %]</a>
+[%- END -%]
+
+[%- MACRO link_perldoc_name(name) BLOCK -%]
+    <a href="[% root_uri_rel %]/perldoc?[% name %]">[% name %]</a>
 [%- END -%]
 
 [%- MACRO link_user(user) BLOCK -%]
@@ -80,10 +87,20 @@
     <a href="http://testers.cpan.org/show/[% distver.dist.name %].html">cpantesters</a>
 [%- END -%]
 
+[%- MACRO link_author_cpantesters(author) BLOCK -%]
+    <a href="http://testers.cpan.org/author/[% author %].html">cpantesters</a>
+[%- END -%]
+
 [%- MACRO link_author_search_cpan_org(author) BLOCK -%]
     <a href="http://search.cpan.org/~[% author %]">search.cpan.org</a>
 [%- END -%]
 
 [%- MACRO link_author_kobes(author) BLOCK -%]
     <a href="http://cpan.uwinnipeg.ca/~[% author %]">Kobes search</a>
+[%- END -%]
+
+[%- MACRO rating(dist) BLOCK -%]
+    [% IF dist.review_count > 0; SET stars = dist.stars %]
+    <a href="http://cpanratings.perl.org/dist/[% dist.name %]"><img src="[% img_root %]/stars-[% stars %].0.png" alt="Rating: [% stars %] stars" title="[% dist.rating5 %]/5 from [% dist.review_count %] reviews; click to read or write reviews"></a>
+    [% END %]
 [%- END -%]

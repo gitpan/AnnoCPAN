@@ -1,13 +1,14 @@
 [%# vars: notepos, note, sect %]
 
-[% next_note_index = note_index + 1; prev_note_index = note_index - 1 %]
+[% UNLESS all_notepos; note_index = 0; all_notepos = []; END;
+next_note_index = note_index + 1; prev_note_index = note_index - 1 %]
 
 [% UNLESS notepos && ! notepos.is_visible %]
 <div class="note [% notepos.score_class %]" id="note_[% note.id %]">
 <div class="note_header">
     <div class="note_data">
     [% link_user(note.user) %]
-    ([% USE date; date.format(note.time, format="%Y-%m-%d %H:%M:%S", gmt=1) %])
+    ([% YMD_HMS.format(note.time) %])
     <a class="button u_[% note.user.id %]" href="[% root_uri_rel %]/e/?mode=edit;notepos=[% notepos.id %]#noteform">[edit]</a>
     <a class="button u_[% note.user.id %]" href="[% root_uri_rel %]/e/?mode=move;notepos=[% notepos.id %]#[% notepos.section.pos %]">[move]</a>
     </div>
@@ -17,8 +18,7 @@
     [% IF note_index < all_notepos.size - 1 %]<a href="#note_[% all_notepos.$next_note_index.note.id %]" title="Next note">»</a>[% END %]
     </div>
 </div> <!-- note_header -->
-<div class="note_body"
-    title="Note info: pos=[% notepos.section.pos %] ([% notepos.score / 10 %]% confidence); status=[% notepos.status %]">
+<div class="note_body">
         [% IF log.size > 0 %]
         <ul class="message">
         [% FOR m = log %]
@@ -26,7 +26,7 @@
         [% END %]
         </ul>
         [% END %]
-    [% note.note | html | html_para %]
+    [% note.html %]
 </div>
 </div> <!-- note -->
 [% END %]

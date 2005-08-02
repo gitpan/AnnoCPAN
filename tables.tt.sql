@@ -10,7 +10,10 @@
 %]
 create table dist (
     [% id %],
-    name        varchar(255)
+    name            varchar(255),
+    rating          integer,
+    review_count    integer,
+    creation_time   integer
 );
 create index name_index on dist(name[% "(10)" IF index_len %]);
 
@@ -18,6 +21,7 @@ create table distver (
     [% id %],
     dist        integer,
     version     varchar(255),
+    maturity    integer,
     path        varchar(255),
     distver     varchar(255),
     mtime       integer,
@@ -49,6 +53,7 @@ create table podver (
     pod         integer,
     distver     integer,
     path        varchar(255),
+    signature   varchar(255),
     description text,
     html        [% 'long' IF db == 'mysql' %]blob
     -- version     varchar(255), -- same as distver version

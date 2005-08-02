@@ -53,6 +53,11 @@ function init_buttons(node) {
             link.onclick = edit_link_onclick(mode, note, notepos, section);
         } 
     }
+    var help_link = document.getElementById('note_help_link');
+    help_link.onclick = function () {
+        window.open('/note_help', 'ac_help', 'width=500,height=450,resizable=yes,scrollbars=yes').focus();
+        return false;
+    }
 }
 
 // Shows the form when user clicks on edit or create note button
@@ -64,22 +69,22 @@ function edit_link_onclick (mode, note, notepos, section) {
         }
         // alert('note='+note); return false;
         Hidden_Note = note;
-        Hidden_Note.style.display = "none";
         note.parentNode.insertBefore(Form, note);
         note.parentNode.insertBefore(Please_Wait, note);
-        Form.style.display = "block";
         Form.notepos.value = notepos; 
         Form.section.value = section;
         if (mode == 'create') {
+            Hidden_Note.style.display = "none";
+            Form.style.display = "block";
             Form.note_text.value = ''; // XXX - may cause lost text
             Edit_Buttons.style.display = 'none';
+            Form.note_text.focus();
         } else if (mode == 'edit') {
-            Form.note_text.value = note_plaintext(note);
+            set_note_plaintext(notepos);
             Edit_Buttons.style.display = 'inline';
         } else {
             alert('there is a mysterious bug');
         }
-        Form.note_text.focus();
         return false;
     }
 }
@@ -274,4 +279,20 @@ function note_plaintext(note) {
     s = unescape_html(s);
     return s;
 }
+
+function set_note_plaintext(notepos) {
+    document.getElementsByTagName('body')[0].style.cursor = 'wait';
+    return get_xml('/?mode=raw_note;notepos=' + notepos, on_raw_note);
+}
+
+function on_raw_note(response) {
+    var s = response.responseText;
+    s = s.replace(/\n$/, '');
+    Form.note_text.value = s;
+    Hidden_Note.style.display = "none";
+    Form.style.display = "block";
+    document.getElementsByTagName('body')[0].style.cursor = 'auto';
+    Form.note_text.focus();
+}
+
 

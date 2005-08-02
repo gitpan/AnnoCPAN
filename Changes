@@ -1,5 +1,32 @@
 Revision history for AnnoCPAN
 
+0.22  Aug 02 2004
+        - Bug fixes
+            * Fixed some bugs in L<>
+            * Fixed note propagation bug
+            * Found cause of database connection bug (version of DBD::mysql)
+            * Fixed =begin count persistence bug
+        - Site structure and navigation
+            * Redirect perldoc.cgi
+            * Redirect when a dist has only one distver
+            * Added a pager in the front page
+            * Use 302 redirects by default
+            * /note mode that shows and edits version bindings for a note
+            * Use Lingua::EN::Inflect to avoid saying '1 notes'
+            * Support POD formatting in notes
+            * Added help to edit form
+        - RSS
+            * RSS of new dists
+            * Refactored RSS code into AnnoCPAN::Feed
+        - Backend / database
+            * Added CPANRatings data
+            * Added maturity data to distver table
+            * Added "creation_time" to dist table
+        - Miscelaneous features
+            * Compression
+            * Added note_id to note elements in XML dump
+            * Plain text note counts
+
 0.21  Jul 12 2005
         - Site structure and navigation
             * Added support for urls such as /~id/dist/path

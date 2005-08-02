@@ -1,4 +1,4 @@
-AnnoCPAN development version 0.20
+AnnoCPAN development version 0.22
 =================================
 
 AnnoCPAN is a web interface for the documentation of all the modules on CPAN,
@@ -67,4 +67,6 @@ it under the same terms as Perl itself.
 
 Some of the icons in the html/img directory by tigert; they were taken from
 http://tigert.gimp.org/gnome/gnome-stock/ . Available under the GPL.
+
+The star* images were borrowed from cpanratings.perl.org.
 
